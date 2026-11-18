@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Central de Incidentes - Esqueleto Web</title>
+</head>
+<body>
+
+    <header>
+        <h1>Central de Incidentes para Superhéroes</h1>
+        <nav>
+            <button onclick="mostrarSeccion('heroes')">Gestionar Héroes</button>
+            <button onclick="mostrarSeccion('incidentes')">Gestionar Incidentes</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- SECCIÓN HÉROES -->
+        <section id="seccion-heroes">
+            <h2>Héroes</h2>
+
+            <!-- Formulario de Registro -->
+            <form id="formHeroe">
+                <h3>Registrar Héroe</h3>
+                <div>
+                    <label for="nombre">Nombre:</label><br>
+                    <input type="text" id="nombre" required>
+                </div>
+                <div>
+                    <label for="identidadSecreta">Identidad Secreta:</label><br>
+                    <input type="text" id="identidadSecreta" required>
+                </div>
+                <div>
+                    <label for="nivelPoder">Nivel de Poder:</label><br>
+                    <input type="number" id="nivelPoder" min="1" max="100" required>
+                </div>
+                <br>
+                <button type="submit">Guardar Héroe</button>
+            </form>
+
+            <hr>
+
+            <!-- Zona de Feedback y Estados -->
+            <div id="feedback" aria-live="polite"></div>
+            <div id="loader" style="display: none;">Cargando información desde el servidor...</div>
+
+            <!-- Listado -->
+            <h3>Listado de Héroes Registrados</h3>
+            <ul id="listaHeroes">
+                <!-- Se llenará dinámicamente con JS -->
+            </ul>
+            <p id="estadoVacio" style="display: none;">No hay registros disponibles en este momento.</p>
+        </section>
+
+        <!-- SECCIÓN INCIDENTES (Estructura base) -->
+        <section id="seccion-incidentes" style="display: none;">
+            <h2>Incidentes</h2>
+            <p>Módulo de incidentes en desarrollo.</p>
+        </section>
+    </main>
+
+    <script>
+        const API_URL = "http://localhost:5000/api"; // Asegúrate de que coincida con el puerto de tu API
+
+        // Función para alternar secciones por teclado/clicks
+        function mostrarSeccion(seccion) {
+            if (seccion === 'heroes') {
+                document.getElementById('seccion-heroes').style.display = 'block';
+                document.getElementById('seccion-incidentes').style.display = 'none';
+                cargarHeroes();
+            } else {
+                document.getElementById('seccion-heroes').style.display = 'none';
+                document.getElementById('seccion-incidentes').style.display = 'block';
+            }
+        }
+
+        // Mostrar mensajes de feedback claros
+        function mostrarMensaje(texto, esError = false) {
+            const fb = document.getElementById('feedback');
+            fb.textContent = texto;
+            fb.style.color = esError ? 'red' : 'green';
+            setTimeout(() => { fb.textContent = ''; }, 5000);
+        }
+
+        // Obtener datos (GET)
+        async function cargarHeroes() {
+            const loader = document.getElementById('loader');
+            const lista = document.getElementById('listaHeroes');
+            const vacio = document.getElementById('estadoVacio');
+
+            loader.style.display = 'block';
+            lista.innerHTML = '';
+            vacio.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_URL}/heroes`);
+                if (!response.ok) throw new Error("Error al conectar con la API.");
+
+                const heroes = await response.json();
+                loader.style.display = 'none';
+
+                if (heroes.length === 0) {
+                    vacio.style.display = 'block';
+                } else {
+                    heroes.forEach(h => {
+                        const li = document.createElement('li');
+                        li.textContent = `${h.nombre} (Identidad: ${h.identidadSecreta}) - Poder: ${h.nivelPoder} - Estado: ${h.estado}`;
+                        lista.appendChild(li);
+                    });
+                }
+            } catch (error) {
+                loader.style.display = 'none';
+                mostrarMensaje(`Error: ${error.message}`, true);
+            }
+        }
+
+        // Enviar datos (POST)
+        document.getElementById('formHeroe').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const nuevoHeroe = {
+                nombre: document.getElementById('nombre').value,
+                identidadSecreta: document.getElementById('identidadSecreta').value,
+                nivelPoder: parseInt(document.getElementById('nivelPoder').value),
+                estado: "Disponible"
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/heroes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(nuevoHeroe)
+                });
+
+                if (!response.ok) throw new Error("No se pudo registrar el héroe.");
+
+                mostrarMensaje("¡Héroe registrado con éxito!");
+                document.getElementById('formHeroe').reset();
+                cargarHeroes();
+            } catch (error) {
+                mostrarMensaje(`Error al registrar: ${error.message}`, true);
+            }
+        });
+
+        // Cargar al iniciar
+        window.onload = cargarHeroes;
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# Build folders
+bin/
+obj/
+
+# Visual Studio files
+.vs/
+*.user
+*.suo
+
+# User-specific configuration
+appsettings.Development.json
